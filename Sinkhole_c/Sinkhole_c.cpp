@@ -9,8 +9,8 @@
 
 using namespace std;
 
-#define M 32
-#define N 32
+#define M 1026
+#define N 1026
 #define size M*N
 
 
@@ -31,6 +31,8 @@ int main()
 {
 	vector<vector<int>> baselayer(N);
 	for (int i = 0; i < N; i++) baselayer[i] = vector<int>(M);
+	vector<vector<int>> upperlayer(N);
+	for (int i = 0; i < N; i++) upperlayer[i] = vector<int>(M);
 	vector<vector<double>> baseprob(N);
 	for (int i = 0; i < N; i++) baseprob[i] = vector<double>(M);
 	for (int i = 0; i < N; i++) for (int j = 0; j < M; j++) baseprob[i][j] = 0;
@@ -38,91 +40,109 @@ int main()
 	for (int i = 0; i < N; i++) upperprob[i] = vector<double>(M);
 	for (int i = 0; i < N; i++) for (int j = 0; j < M; j++) upperprob[i][j] = 0;
 
-	map<int, int> area;
-	area[0] = 0;
-	map<int, int> width;
-	width[0] = 1; //Defining special params for zero assists with calculations later (no 0/0 and no more ifs)
-	map<int, int> nextwidth;
-	map<int, int> length;
-	length[0] = 1;
-	map<int, int> nextlength;
-	map<int, double> dpmap;
+
 
 	double p = 0.01;
 	double gamma = 0.06;
 	double alpha = 0.03;
-
+	int iteration = 15;
 	initializebase(baselayer, p);
+	cout << "LOWER" << endl;
 	printlayer(baselayer);
+	for (int i = 0; i < iteration; i++) {
+		map<int, int> area;
+		area[0] = 0;
+		map<int, int> width;
+		width[0] = 1; //Defining special params for zero assists with calculations later (no 0/0 and no more ifs)
+		map<int, int> nextwidth;
+		map<int, int> length;
+		length[0] = 1;
+		map<int, int> nextlength;
+		map<int, double> dpmap;
 
-	labelgroups(baselayer);
+		labelgroups(baselayer);
 
-	groupcols(baselayer);
-	grouprows(baselayer);
-	groupcols(baselayer);
-	
-	computearea(baselayer, area);
-	computewidth(baselayer, width, nextwidth);
-	computelength(baselayer, length, nextlength);
+		groupcols(baselayer);
+		grouprows(baselayer);
+		groupcols(baselayer);
 
-	printlayer(baselayer);
+		computearea(baselayer, area);
+		computewidth(baselayer, width, nextwidth);
+		computelength(baselayer, length, nextlength);
 
-	
-	for (auto elem : area)
-	{
-		dpmap[elem.first] = dp(p, gamma, elem.second);
-	}
-	
-	cout << "area" << endl;
-	for (auto elem : area)
-	{
-		std::cout << elem.first << " " << elem.second << "\n";
-		dpmap[elem.first] = dp(p, gamma, elem.second);
-	}
+		//printlayer(baselayer);
 
-	cout << "width" << endl;
-	for (auto elem : width)
-	{
-		std::cout << elem.first << " " << elem.second << "\n";
-	}
 
-	cout << "length" << endl;
-	for (auto elem : length)
-	{
-		std::cout << elem.first << " " << elem.second << "\n";
-	}
-
-	cout << "dp" << endl;
-	for (auto elem : dpmap)
-	{
-		std::cout << elem.first << " " << elem.second << "\n";
-	}
-
-	updatelowerprob(baseprob, baselayer, dpmap, p);
-
-	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < M; j++) cout << baseprob[i][j] << " ";
-		cout << endl;
-	}
-	cout << endl;
-
-	updateupperprob(upperprob, baselayer, area, length, width, alpha);
-	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < M; j++) cout << upperprob[i][j] << " ";
-		cout << endl;
-	}
-	cout << endl;
-	random_device rd; //non-deterministic generator
-	mt19937 gen(rd());  // to seed mersenne twister
-	
-	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < M; j++) {
-			binomial_distribution<> dist(1, baseprob[i][j]); // distribute results between 1 and 6 inclusive.
-			baselayer[i][j] = dist(gen);
+		for (auto elem : area)
+		{
+			dpmap[elem.first] = dp(p, gamma, elem.second);
 		}
+
+		//cout << "area" << endl;
+		//for (auto elem : area)
+		//{
+		//	std::cout << elem.first << " " << elem.second << "\n";
+		//	dpmap[elem.first] = dp(p, gamma, elem.second);
+		//}
+
+		//cout << "width" << endl;
+		//for (auto elem : width)
+		//{
+		//	std::cout << elem.first << " " << elem.second << "\n";
+		//}
+
+		//cout << "length" << endl;
+		//for (auto elem : length)
+		//{
+		//	std::cout << elem.first << " " << elem.second << "\n";
+		//}
+
+		//cout << "dp" << endl;
+		//for (auto elem : dpmap)
+		//{
+		//	std::cout << elem.first << " " << elem.second << "\n";
+		//}
+
+		updatelowerprob(baseprob, baselayer, dpmap, p);
+
+		//for (int i = 0; i < N; i++) {
+		//	for (int j = 0; j < M; j++) cout << baseprob[i][j] << " ";
+		//	cout << endl;
+		//}
+		//cout << endl;
+
+		updateupperprob(upperprob, baselayer, area, length, width, alpha);
+		//for (int i = 0; i < N; i++) {
+		//	for (int j = 0; j < M; j++) cout << upperprob[i][j] << " ";
+		//	cout << endl;
+		//}
+		cout << endl;
+		random_device rd; //non-deterministic generator
+		mt19937 gen(rd());  // to seed mersenne twister
+
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < M; j++) {
+				binomial_distribution<> dist(1, upperprob[i][j]); // distribute results between 1 and 6 inclusive.
+				upperlayer[i][j] = dist(gen);
+			}
+		}
+
+		cout << "UPPER" << endl;
+		for (int i = 0; i < N; i++) {
+				for (int j = 0; j < M; j++) cout << upperlayer[i][j] << " ";
+				cout << endl;
+			}
+
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < M; j++) {
+				binomial_distribution<> dist(1, baseprob[i][j]); // distribute results between 1 and 6 inclusive.
+				baselayer[i][j] = dist(gen);
+			}
+		}
+		cout << "LOWER" << endl;
+		printlayer(baselayer);
 	}
 
-	printlayer(baselayer);
 
     cout << "Hello World!\n";
 	return 0;
@@ -141,15 +161,15 @@ int main()
 
 
 void initializebase(vector<vector<int>> &baselayer, double p) {
-	//random_device rd; //non-deterministic generator
-	//mt19937 gen(rd());  // to seed mersenne twister
-	//binomial_distribution<> dist(1, p); // distribute results between 1 and 6 inclusive.
+	random_device rd; //non-deterministic generator
+	mt19937 gen(rd());  // to seed mersenne twister
+	binomial_distribution<> dist(1, p); // distribute results between 1 and 6 inclusive.
 
 
 	for (int i = 1; i < N - 1; i++) {
-		for (int j = 1; j < M - 1; j++) baselayer[i][j] = 0;    //baselayer[i][j] = dist(gen);// pass the generator to the distribution.
+		for (int j = 1; j < M - 1; j++) baselayer[i][j] = dist(gen); //baselayer[i][j] = 0;    // pass the generator to the distribution.
 	}
-	for (int i = 1; i < 20; i++) baselayer[i][2] = 1;
+	/*for (int i = 1; i < 20; i++) baselayer[i][2] = 1;
 	for (int i = 1; i < 20; i++) baselayer[i][4] = 1;
 	baselayer[5][1] = 1;
 	baselayer[5][3] = 1;
@@ -158,7 +178,7 @@ void initializebase(vector<vector<int>> &baselayer, double p) {
 	baselayer[7][6] = 1;
 	baselayer[7][7] = 1;
 	baselayer[6][7] = 1;
-	baselayer[5][7] = 1;
+	baselayer[5][7] = 1;*/
 	for (int i = 0; i < M; i++) {
 		baselayer[0][i] = 0;
 		baselayer[N - 1][i] = 0;
