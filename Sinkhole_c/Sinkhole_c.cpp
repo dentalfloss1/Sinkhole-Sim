@@ -8,6 +8,7 @@
 #include <vector>
 #include <math.h>
 #include <string>  
+#include <omp.h>
 
 using namespace std;
 
@@ -37,9 +38,11 @@ int main()
 	for (int i = 0; i < N; i++) upperlayer[i] = vector<int>(M);
 	vector<vector<double>> baseprob(N);
 	for (int i = 0; i < N; i++) baseprob[i] = vector<double>(M);
+	#pragma omp parallel for
 	for (int i = 0; i < N; i++) for (int j = 0; j < M; j++) baseprob[i][j] = 0;
 	vector<vector<double>> upperprob(N);
 	for (int i = 0; i < N; i++) upperprob[i] = vector<double>(M);
+	#pragma omp parallel for
 	for (int i = 0; i < N; i++) for (int j = 0; j < M; j++) upperprob[i][j] = 0;
 
 
@@ -47,17 +50,17 @@ int main()
 	double p = 0.01;
 	double gamma = 0.06;
 	double alpha = 0.03;
-	int iteration = 1;
+	int iteration = 15;
 	initializebase(baselayer, p);
-	cout << "LOWER" << endl;
-	printlayer(baselayer);
-	ofstream myfile;
+	//cout << "LOWER" << endl;
+	//printlayer(baselayer);
+/*	ofstream myfile;
 	myfile.open("baselayer0.csv");
 	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < M; j++) myfile << baselayer[i][j] << ",";
-		myfile << endl;
+		for (int j = 0; j < M-1; j++) myfile << baselayer[i][j] << ",";
+		myfile << baselayer[i][M-1] << endl;
 	}
-	myfile.close();
+	myfile.close();*/
 	for (int i = 0; i < iteration; i++) {
 		map<int, int> area;
 		area[0] = 0;
@@ -68,18 +71,22 @@ int main()
 		length[0] = 1;
 		map<int, int> nextlength;
 		map<int, double> dpmap;
-
+        //        cout << "LABEL GROUPS" << endl;
 		labelgroups(baselayer);
-
+	//	cout << "GROUP COLS" << endl;
 		groupcols(baselayer);
+	//	cout << "GROUP ROWS" << endl;
 		grouprows(baselayer);
+	//	cout << "GROUP COLS" << endl;
 		groupcols(baselayer);
-
+	//	cout << "COMPUTE AREA" << endl;
 		computearea(baselayer, area);
+	//	cout << "COMPUTE WIDTH" << endl;
 		computewidth(baselayer, width, nextwidth);
+	//	cout << "COMPUTE LENGTH" << endl;
 		computelength(baselayer, length, nextlength);
 
-		//printlayer(baselayer);
+	//	printlayer(baselayer);
 
 
 		for (auto elem : area)
@@ -87,44 +94,44 @@ int main()
 			dpmap[elem.first] = dp(p, gamma, elem.second);
 		}
 
-		//cout << "area" << endl;
-		//for (auto elem : area)
-		//{
-		//	std::cout << elem.first << " " << elem.second << "\n";
-		//	dpmap[elem.first] = dp(p, gamma, elem.second);
-		//}
+	/*	cout << "area" << endl;
+		for (auto elem : area)
+		{
+			std::cout << elem.first << " " << elem.second << "\n";
+		dpmap[elem.first] = dp(p, gamma, elem.second);
+		}
 
-		//cout << "width" << endl;
-		//for (auto elem : width)
-		//{
-		//	std::cout << elem.first << " " << elem.second << "\n";
-		//}
+		cout << "width" << endl;
+		for (auto elem : width)
+		{
+			std::cout << elem.first << " " << elem.second << "\n";
+		}
 
-		//cout << "length" << endl;
-		//for (auto elem : length)
-		//{
-		//	std::cout << elem.first << " " << elem.second << "\n";
-		//}
+		cout << "length" << endl;
+		for (auto elem : length)
+		{
+			std::cout << elem.first << " " << elem.second << "\n";
+		}
 
-		//cout << "dp" << endl;
-		//for (auto elem : dpmap)
-		//{
-		//	std::cout << elem.first << " " << elem.second << "\n";
-		//}
-
+		cout << "dp" << endl;
+		for (auto elem : dpmap)
+		{
+			std::cout << elem.first << " " << elem.second << "\n";
+		}
+*/
 		updatelowerprob(baseprob, baselayer, dpmap, p);
 
-		//for (int i = 0; i < N; i++) {
-		//	for (int j = 0; j < M; j++) cout << baseprob[i][j] << " ";
-		//	cout << endl;
-		//}
-		//cout << endl;
-
+/*		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < M; j++) cout << baseprob[i][j] << " ";
+			cout << endl;
+		}
+		cout << endl;
+*/
 		updateupperprob(upperprob, baselayer, area, length, width, alpha);
-		//for (int i = 0; i < N; i++) {
-		//	for (int j = 0; j < M; j++) cout << upperprob[i][j] << " ";
-		//	cout << endl;
-		//}
+/*		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < M; j++) cout << upperprob[i][j] << " ";
+			cout << endl;
+		}*/
 		cout << endl;
 		random_device rd; //non-deterministic generator
 		mt19937 gen(rd());  // to seed mersenne twister
@@ -132,41 +139,43 @@ int main()
 		for (int i = 0; i < N; i++) {
 			for (int j = 0; j < M; j++) {
 				binomial_distribution<> dist(1, upperprob[i][j]); // distribute results between 1 and 6 inclusive.
-				upperlayer[i][j] = dist(gen);
+				if (0 == upperlayer[i][j]) upperlayer[i][j] = dist(gen);
+                                else upperlayer[i][j] = 1;
 			}
 		}
 
-		myfile.open("upperlayer"+to_string(i)+".csv");
+		/*myfile.open("upperlayer"+to_string(i)+".csv");
 		for (int i = 0; i < N; i++) {
-			for (int j = 0; j < M; j++) myfile << upperlayer[i][j] << ",";
-			myfile << endl;
+			for (int j = 0; j < M-1; j++) myfile << upperlayer[i][j] << ",";
+			myfile << upperlayer[i][M-1] << endl;
 		}
-		myfile.close();
+		myfile.close();*/
 
-		cout << "UPPER" << endl;
+/*		cout << "UPPER" << endl;
 		for (int i = 0; i < N; i++) {
 				for (int j = 0; j < M; j++) cout << upperlayer[i][j] << " ";
 				cout << endl;
 			}
-
+*/
 		for (int i = 0; i < N; i++) {
 			for (int j = 0; j < M; j++) {
 				binomial_distribution<> dist(1, baseprob[i][j]); // distribute results between 1 and 6 inclusive.
-				baselayer[i][j] = dist(gen);
+				if (0 == baselayer[i][j]) baselayer[i][j] = dist(gen);
+				else baselayer[i][j] = 1;
 			}
 		}
-		cout << "LOWER" << endl;
-		printlayer(baselayer);
-		myfile.open("baselayer" + to_string(i+1) + ".csv");
+//		cout << "LOWER" << endl;
+//		printlayer(baselayer);
+	/*	myfile.open("baselayer" + to_string(i+1) + ".csv");
 		for (int i = 0; i < N; i++) {
-			for (int j = 0; j < M; j++) myfile << baselayer[i][j] << ",";
-			myfile << endl;
+			for (int j = 0; j < M-1; j++) myfile << baselayer[i][j] << ",";
+			myfile << baselayer[i][M-1] << endl;
 		}
-		myfile.close();
+		myfile.close();*/
 	}
 
 
-    cout << "Hello World!\n";
+  //  cout << "Hello World!\n";
 	return 0;
 }
 
@@ -187,7 +196,7 @@ void initializebase(vector<vector<int>> &baselayer, double p) {
 	mt19937 gen(rd());  // to seed mersenne twister
 	binomial_distribution<> dist(1, p); // distribute results between 1 and 6 inclusive.
 
-
+	#pragma omp parallel for
 	for (int i = 1; i < N - 1; i++) {
 		for (int j = 1; j < M - 1; j++) baselayer[i][j] = dist(gen); //baselayer[i][j] = 0;    // pass the generator to the distribution.
 	}
@@ -201,11 +210,13 @@ void initializebase(vector<vector<int>> &baselayer, double p) {
 	baselayer[7][7] = 1;
 	baselayer[6][7] = 1;
 	baselayer[5][7] = 1;*/
+	#pragma omp parallel for
 	for (int i = 0; i < M; i++) {
 		baselayer[0][i] = 0;
 		baselayer[N - 1][i] = 0;
 
 	}
+	#pragma omp parallel for
 	for (int i = 0; i < N; i++) {
 		baselayer[i][0] = 0;
 		baselayer[i][M - 1] = 0;
@@ -234,6 +245,7 @@ void labelgroups(vector<vector<int>> &baselayer) {
 }
 
 void groupcols(vector<vector<int>> &baselayer) {
+	#pragma omp parallel for
 	for (int j = 1; j < M-1; j++) {
 		for (int i = 1; i < N-1; i++) {
 			if ((0 != baselayer[i][j]) && (0 != baselayer[i - 1][j])) {
@@ -249,6 +261,7 @@ void groupcols(vector<vector<int>> &baselayer) {
 }
 
 void grouprows(vector<vector<int>> &baselayer) {
+	#pragma omp parallel for
 	for (int i = 1; i < N-1; i++) {
 		for (int j = 1; j < M; j++) {
 			if ((0 != baselayer[i][j]) && (0 != baselayer[i][j + 1]) && (baselayer[i][j + 1] < baselayer[i][j])) {
@@ -272,7 +285,6 @@ void computearea(vector<vector<int>> &baselayer, map<int, int> &area) {
 
 
 void computewidth(vector<vector<int>> &baselayer, map<int, int> &width, map<int, int> &nextwidth) {
-
 	for (int i = 1; i < N - 1; i++) {
 		for (int j = 1; j < M - 1; j++) {
 			if ((0 == baselayer[i][j - 1]) && (baselayer[i][j] != 0) && (0 == baselayer[i][j + 1])) {
@@ -324,6 +336,7 @@ double dp(double p, double gamma, int A) {
 }
 
 void updatelowerprob(vector<vector<double>> &baseprob, vector<vector<int>> &baselayer, map<int, double> &dpmap, double p) {
+	#pragma omp parallel for
 	for (int i = 1; i < N - 1; i++) {
 		for (int j = 1; j < M - 1; j++) {
 			baseprob[i][j] = p + dpmap[baselayer[i - 1][j]] + dpmap[baselayer[i + 1][j]] + dpmap[baselayer[i][j - 1]] + dpmap[baselayer[i][j + 1]];
@@ -332,6 +345,7 @@ void updatelowerprob(vector<vector<double>> &baseprob, vector<vector<int>> &base
 }
 
 void updateupperprob(vector<vector<double>> &upperprob, vector<vector<int>> &baselayer, map<int, int> &area, map<int, int> &length, map<int, int> &width, double alpha) {
+	#pragma omp parallel for
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < M; j++) {
 			double r = ((double)area[baselayer[i][j]]) / ((double)length[baselayer[i][j]] + (double)width[baselayer[i][j]]);
