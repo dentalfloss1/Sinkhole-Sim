@@ -2,10 +2,12 @@
 //
 #include <map>
 #include <iostream>
+#include <fstream>
 #include <random>
 #include <algorithm>  
 #include <vector>
 #include <math.h>
+#include <string>  
 
 using namespace std;
 
@@ -45,10 +47,17 @@ int main()
 	double p = 0.01;
 	double gamma = 0.06;
 	double alpha = 0.03;
-	int iteration = 15;
+	int iteration = 1;
 	initializebase(baselayer, p);
 	cout << "LOWER" << endl;
 	printlayer(baselayer);
+	ofstream myfile;
+	myfile.open("baselayer0.csv");
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < M; j++) myfile << baselayer[i][j] << ",";
+		myfile << endl;
+	}
+	myfile.close();
 	for (int i = 0; i < iteration; i++) {
 		map<int, int> area;
 		area[0] = 0;
@@ -127,6 +136,13 @@ int main()
 			}
 		}
 
+		myfile.open("upperlayer"+to_string(i)+".csv");
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < M; j++) myfile << upperlayer[i][j] << ",";
+			myfile << endl;
+		}
+		myfile.close();
+
 		cout << "UPPER" << endl;
 		for (int i = 0; i < N; i++) {
 				for (int j = 0; j < M; j++) cout << upperlayer[i][j] << " ";
@@ -141,6 +157,12 @@ int main()
 		}
 		cout << "LOWER" << endl;
 		printlayer(baselayer);
+		myfile.open("baselayer" + to_string(i+1) + ".csv");
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < M; j++) myfile << baselayer[i][j] << ",";
+			myfile << endl;
+		}
+		myfile.close();
 	}
 
 
